@@ -11,40 +11,65 @@ import {
   Linking,
   Alert,
   Platform,
+  Dimensions,
 } from 'react-native';
 import { RootStackParamList } from '../types/navigation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GameReady'>;
+
+const { width: screenWidth } = Dimensions.get('window');
 
 export default function HomeScreen({ navigation }: Props) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(-50)).current;
   const buttonScales = useRef(
     Array(4).fill(null).map(() => new Animated.Value(1))
-  ).current; // Create an array of Animated.Values for scaling buttons
+  ).current;
+  
+  // Create slide animations for buttons from left and right
+  const buttonSlideAnims = useRef([
+    new Animated.Value(screenWidth), // PLAY - from right
+    new Animated.Value(-screenWidth), // INSTRUCTIONS - from left
+    new Animated.Value(screenWidth), // CLUES - from right
+    new Animated.Value(-screenWidth), // EXIT - from left
+  ]).current;
+
   const [hoveredButton, setHoveredButton] = useState<number | null>(null);
   const [textColors, setTextColors] = useState({
-    title: '#aaa',
-    buttons: ['#000', '#000', '#000', '#000'], // Initialize button text colors to black
+    title: '#888',
+    buttons: ['#888', '#888', '#888', '#888'],
     note: '#fff',
     link: '#00f',
   });
 
-  const lightColors = ['#FFB6C1', '#FFD700', '#ADFF2F', '#87CEFA', '#FF69B4'];
+  const lightColors = ['#888'];
 
   useEffect(() => {
+    // Start title animations
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 800,
+        duration: 1200,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 800,
+        duration: 1200,
         useNativeDriver: true,
       }),
     ]).start();
+
+    // Start button slide animations with staggered timing
+    const buttonAnimations = buttonSlideAnims.map((anim, index) => {
+      return Animated.timing(anim, {
+        toValue: 0,
+        duration: 1000,
+        delay: 500 + (index * 300), // Stagger the animations
+        useNativeDriver: true,
+      });
+    });
+
+    Animated.parallel(buttonAnimations).start();
   }, []);
 
   useEffect(() => {
@@ -86,7 +111,7 @@ export default function HomeScreen({ navigation }: Props) {
   const handleMouseEnter = (index: number) => {
     setHoveredButton(index);
     Animated.timing(buttonScales[index], {
-      toValue: 1.2, // Scale up the hovered button
+      toValue: 1.2,
       duration: 300,
       useNativeDriver: true,
     }).start();
@@ -95,7 +120,7 @@ export default function HomeScreen({ navigation }: Props) {
   const handleMouseLeave = (index: number) => {
     setHoveredButton(null);
     Animated.timing(buttonScales[index], {
-      toValue: 1, // Reset the button scale
+      toValue: 1,
       duration: 300,
       useNativeDriver: true,
     }).start();
@@ -117,7 +142,10 @@ export default function HomeScreen({ navigation }: Props) {
           key={i}
           style={{
             opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }, { scale: buttonScales[i] }],
+            transform: [
+              { translateX: buttonSlideAnims[i] },
+              { scale: buttonScales[i] }
+            ],
             marginVertical: 8,
           }}
         >
@@ -143,10 +171,15 @@ export default function HomeScreen({ navigation }: Props) {
         Headphones Recommended
       </Animated.Text>
       <Animated.Text
-        style={[styles.link, { opacity: fadeAnim, color: textColors.link }]}
+        style={[styles.soundtrack, { opacity: fadeAnim, color: textColors.link }]}
+      >
+        SOUNDTRACK:
+      </Animated.Text>
+      <Animated.Text
+        style={[styles.link, { opacity: fadeAnim, color: "blue" }]}
         onPress={() => Linking.openURL('https://www.youtube.com/watch?v=UceaB4D0jpo')}
       >
-        SOUNDTRACK: "THEFATRAT XENOGENISIS"
+        "THEFATRAT XENOGENISIS"
       </Animated.Text>
     </View>
   );
@@ -165,15 +198,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontStyle: 'italic',
     marginBottom: 30,
+    textDecorationLine: 'underline',
   },
   button: {
     backgroundColor: '#fff',
     paddingVertical: 10,
     paddingHorizontal: 40,
     borderRadius: 25,
+    borderWidth: 2,
+    borderColor: '#888',
   },
   hoveredButton: {
-    backgroundColor: '#f0f',
+    borderColor: '#666',
   },
   buttonText: {
     fontWeight: 'bold',
@@ -182,9 +218,13 @@ const styles = StyleSheet.create({
   note: {
     fontSize: 12,
   },
+  soundtrack: {
+    fontSize: 12,
+    marginTop: 10,
+  },
   link: {
     fontSize: 12,
     textDecorationLine: 'underline',
-    marginTop: 10,
+    marginTop: 2,
   },
 });
